@@ -60,7 +60,7 @@ class DownloadBulkCommand(CommandBase):
         "Use 'archive' mode to bundle everything into a single in-memory zip, "
         "or 'iterative' mode to transfer each file individually."
     )
-    version = 2
+    version = 1
     is_download_file = True
     author = "@maclarel"
     parameters = []

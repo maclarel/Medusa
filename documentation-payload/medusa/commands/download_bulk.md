@@ -19,7 +19,7 @@ The command automatically detects whether the supplied path is a single file or 
 - Python Versions Supported: 2.7, 3.8
 - Needs Admin: False
 - Version: 1
-- Author: @ajpc500
+- Author: @maclarel
 
 ### Arguments
 
@@ -81,7 +81,9 @@ The `path` argument is resolved using `os.path.isdir` and `os.path.isfile`. Rela
 
 ### Archive mode
 
-An in-memory `zipfile.ZipFile` (backed by `io.BytesIO`) is created and populated with all target files. The zip data is then chunked and sent to the Mythic server using the same `download` API used by the single-file `download` command. The archive is **never written to disk** on the target machine.
+An in-memory `zipfile.ZipFile` (backed by `io.BytesIO`) is created and populated with all target files. The zip data is then chunked and sent to the Mythic server using the same `download` API used by the single-file `download` command.
+
+Note: This can be extremely slow to transfer larger amounts of data due to chunking. Expect to take a walk or a nap if you're trying to pull thousands of files/hundreds of MB of data.
 
 Directory structure is preserved inside the zip using `os.path.relpath` to compute each entry's arcname:
 

@@ -7,14 +7,14 @@ hidden = false
 
 ## Summary
 
-Bulk download a file, directory, or list of files from the target machine.
+Bulk download file(s), director(ies), or a mix from the target machine.
 
 Two modes are supported:
 
 - **archive** *(default)*: all files are bundled into a single in-memory zip archive that is streamed back to the Mythic server. The archive is never written to disk on the target.
 - **iterative**: each file is transferred individually using the same chunked approach as the `download` command.
 
-The command automatically detects whether the supplied path is a single file or a directory. When a directory is specified, all files within it (recursively) are included.
+The command automatically detects whether each supplied path is a file or a directory. When a directory is specified, all files within it (recursively) are included. Files that do not exist or are not accessible are skipped rather than causing the entire task to fail.
 
 - Python Versions Supported: 2.7, 3.8
 - Needs Admin: False
@@ -25,7 +25,7 @@ The command automatically detects whether the supplied path is a single file or 
 
 #### path
 
-- Description: Path to a file, a directory, or a JSON list of absolute file paths to download.
+- Description: An array of file or directory paths to download. Multiple entries can be added through the Mythic UI or provided as a JSON array.
 - Required Value: True
 - Default Value: None
 
@@ -40,13 +40,13 @@ The command automatically detects whether the supplied path is a single file or 
 Download an entire directory as a zip archive (default mode):
 
 ```
-download_bulk {"path": "/remote/directory", "mode": "archive"}
+download_bulk {"path": ["/remote/directory"], "mode": "archive"}
 ```
 
 Download a single file using archive mode:
 
 ```
-download_bulk {"path": "/remote/path/to/file.txt"}
+download_bulk {"path": ["/remote/path/to/file.txt"]}
 ```
 
 Download multiple specific files iteratively:
@@ -58,7 +58,7 @@ download_bulk {"path": ["/remote/file1.txt", "/remote/file2.txt"], "mode": "iter
 Download a directory, sending each file individually:
 
 ```
-download_bulk {"path": "/remote/directory", "mode": "iterative"}
+download_bulk {"path": ["/remote/directory"], "mode": "iterative"}
 ```
 
 ## MITRE ATT&CK Mapping
@@ -73,11 +73,11 @@ The `download_bulk` function extends the single-file `download` capability to su
 
 ### Path detection
 
-The `path` argument is resolved using `os.path.isdir` and `os.path.isfile`. Relative paths are resolved against the agent's current working directory:
+The `path` argument accepts an array of paths. Each entry is resolved using `os.path.isdir` and `os.path.isfile`. Relative paths are resolved against the agent's current working directory:
 
 - **Directory** – the directory tree is walked with `os.walk`; every file found is added to the transfer list.
-- **File** – treated as a single-item list.
-- **JSON list** – an explicit list of absolute file paths can be provided directly.
+- **File** – added directly to the transfer list.
+- **Non-existent** – skipped with a warning message; the task continues with remaining files.
 
 ### Archive mode
 
@@ -99,7 +99,7 @@ Each file is transferred individually in the same chunked manner as the existing
     def download_bulk(self, task_id, path, mode="archive"):
         import zipfile, io
 
-        # Build file list from path (file, directory, or list)
+        # Build file list from path array (files, directories, or mix)
         ...
 
         if mode == "iterative":

@@ -9,8 +9,9 @@ class DownloadBulkArguments(TaskArguments):
         self.args = [
             CommandParameter(
                 name="path",
-                type=ParameterType.String,
-                description="Path to a file, a directory, or a JSON list of absolute file paths to download.",
+                type=ParameterType.Array,
+                default_value=[],
+                description="Paths of file(s) or director(ies) to download.",
                 parameter_group_info=[ParameterGroupInfo(
                     required=True
                 )]
@@ -38,21 +39,24 @@ class DownloadBulkArguments(TaskArguments):
 
         if self.command_line[0] == "{":
             temp_json = json.loads(self.command_line)
+            if "path" in temp_json:
+                path_val = temp_json["path"]
+                if isinstance(path_val, str):
+                    temp_json["path"] = [path_val]
             self.load_args_from_dictionary(temp_json)
         else:
-            # Strip surrounding quotes if present
             raw = self.command_line
             if (raw[0] == '"' and raw[-1] == '"') or (raw[0] == "'" and raw[-1] == "'"):
                 raw = raw[1:-1]
-            self.args[0].value = raw
+            self.add_arg("path", [raw])
 
 
 class DownloadBulkCommand(CommandBase):
     cmd = "download_bulk"
     needs_admin = False
-    help_cmd = 'download_bulk {"path": "/remote/path", "mode": "archive"}'
+    help_cmd = 'download_bulk {"path": ["/remote/path", "/remote/path2"], "mode": "archive"}'
     description = (
-        "Bulk download a file, directory, or list of files from the target machine. "
+        "Bulk download file(s), director(ies), or a mix from the target machine. "
         "Use 'archive' mode to bundle everything into a single in-memory zip, "
         "or 'iterative' mode to transfer each file individually."
     )
@@ -73,9 +77,10 @@ class DownloadBulkCommand(CommandBase):
             TaskID=taskData.Task.ID,
             Success=True,
         )
-        path = taskData.args.get_arg("path")
+        paths = taskData.args.get_arg("path")
         mode = taskData.args.get_arg("mode") or "archive"
-        response.DisplayParams = f"{path} (mode: {mode})"
+        display = ", ".join(paths) if isinstance(paths, list) else str(paths)
+        response.DisplayParams = f"{display} (mode: {mode})"
         return response
 
     async def process_response(self, task: PTTaskMessageAllData, response: any) -> PTTaskProcessResponseMessageResponse:

@@ -11,36 +11,45 @@ def download_bulk(self, task_id, path, mode="archive"):
         import zipfile
         import io
 
-        # Resolve the list of files to download
+        # Resolve the list of files to download.
+        # archive_base_dir is used in archive mode to compute relative arcnames that
+        # preserve the original directory structure inside the zip.
         file_list = []
+        archive_base_dir = None
 
         # Check if path is a JSON list of files
         if isinstance(path, list):
-            file_list = path
+            # Normalise each path in the list to absolute
+            file_list = [
+                f if os.path.isabs(f) else os.path.join(self.current_directory, f)
+                for f in path
+            ]
+            # Anchor arcnames at the filesystem root so each entry's full path is
+            # preserved inside the archive (e.g. "etc/nginx/nginx.conf").
+            archive_base_dir = os.sep
         else:
             # Normalise to absolute path
             abs_path = path if os.path.isabs(path) \
                 else os.path.join(self.current_directory, path)
 
             if os.path.isdir(abs_path):
-                # Walk the directory and collect all files
+                # Walk the directory and collect all files.
+                # Anchor at the parent so the directory name itself appears in the
+                # archive (e.g. specifying /etc/nginx gives nginx/nginx.conf inside
+                # the zip rather than stripping the top-level name).
+                archive_base_dir = os.path.dirname(abs_path)
                 for root, dirs, files in os.walk(abs_path):
                     for fname in files:
                         file_list.append(os.path.join(root, fname))
             elif os.path.isfile(abs_path):
+                # Single file: preserve just the filename, no leading path.
+                archive_base_dir = os.path.dirname(abs_path)
                 file_list = [abs_path]
             else:
                 return "Path does not exist or is not accessible: {}".format(abs_path)
 
         if not file_list:
             return "No files found to download."
-
-        # Normalise all paths in the list to absolute paths
-        resolved = []
-        for f in file_list:
-            abs_f = f if os.path.isabs(f) else os.path.join(self.current_directory, f)
-            resolved.append(abs_f)
-        file_list = resolved
 
         # Cache the task reference once to avoid repeated O(n) lookups inside loops
         task_ref = [task for task in self.taskings if task["task_id"] == task_id][0]
@@ -103,7 +112,9 @@ def download_bulk(self, task_id, path, mode="archive"):
             return "\n".join(results)
 
         else:
-            # Archive mode: build an in-memory zip and send it as a single file
+            # Archive mode: build an in-memory zip and send it as a single file.
+            # Directory structure is preserved inside the archive using arcnames
+            # computed relative to archive_base_dir.
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
                 for file_path in file_list:
@@ -113,11 +124,11 @@ def download_bulk(self, task_id, path, mode="archive"):
                     if not os.path.isfile(file_path):
                         continue
 
-                    # Use a relative arcname so the zip doesn't embed absolute paths
-                    arcname = os.path.basename(file_path)
-                    # If multiple files share the same basename, preserve uniqueness
-                    if arcname in zf.namelist():
-                        arcname = file_path.lstrip(os.sep).replace(os.sep, "_")
+                    # Preserve the original directory structure: compute the path
+                    # relative to archive_base_dir so that sub-directories appear as
+                    # real zip entries (e.g. nginx/conf.d/default.conf) rather than
+                    # flat names with underscores.
+                    arcname = os.path.relpath(file_path, archive_base_dir)
                     zf.write(file_path, arcname)
 
             zip_data = zip_buffer.getvalue()

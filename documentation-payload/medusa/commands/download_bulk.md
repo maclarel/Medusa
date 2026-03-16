@@ -83,6 +83,12 @@ The `path` argument is resolved using `os.path.isdir` and `os.path.isfile`. Rela
 
 An in-memory `zipfile.ZipFile` (backed by `io.BytesIO`) is created and populated with all target files. The zip data is then chunked and sent to the Mythic server using the same `download` API used by the single-file `download` command. The archive is **never written to disk** on the target machine.
 
+Directory structure is preserved inside the zip using `os.path.relpath` to compute each entry's arcname:
+
+- **Directory input** (e.g. `/etc/nginx`): entries are anchored at the parent directory, so the top-level name is included — `nginx/nginx.conf`, `nginx/conf.d/default.conf`.
+- **Single file input**: only the filename is stored (`passwd`).
+- **Explicit list input**: entries are anchored at the filesystem root, preserving the full path — `etc/passwd`, `home/user/report.txt`.
+
 ### Iterative mode
 
 Each file is transferred individually in the same chunked manner as the existing `download` command. A separate `file_id` is obtained from Mythic for each file, and the agent streams each one to completion before moving on to the next.

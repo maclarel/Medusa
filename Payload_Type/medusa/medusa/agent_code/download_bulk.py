@@ -27,26 +27,39 @@
                     # Anchor arcnames at the filesystem root so each entry's full path is
                     # preserved inside the archive (e.g. "etc/nginx/nginx.conf").
                     archive_base_dir = os.sep
-                else:
-                    # Normalise to absolute path
-                    abs_path = path if os.path.isabs(path) \
-                        else os.path.join(self.current_directory, path)
-
-                    if os.path.isdir(abs_path):
-                        # Walk the directory and collect all files.
-                        # Anchor at the parent so the directory name itself appears in the
-                        # archive (e.g. specifying /etc/nginx gives nginx/nginx.conf inside
-                        # the zip rather than stripping the top-level name).
-                        archive_base_dir = os.path.dirname(abs_path)
-                        for root, dirs, files in os.walk(abs_path):
-                            for fname in files:
-                                file_list.append(os.path.join(root, fname))
-                    elif os.path.isfile(abs_path):
-                        # Single file: preserve just the filename, no leading path.
-                        archive_base_dir = os.path.dirname(abs_path)
-                        file_list = [abs_path]
+                elif isinstance(path, str):
+                    # Try to parse a JSON list from a string (backward compat)
+                    stripped = path.strip()
+                    if stripped.startswith("["):
+                        try:
+                            parsed = json.loads(stripped)
+                            if isinstance(parsed, list):
+                                file_list = [
+                                    f if os.path.isabs(f) else os.path.join(self.current_directory, f)
+                                    for f in parsed
+                                ]
+                                archive_base_dir = os.sep
+                            else:
+                                return "Invalid path value: {}".format(path)
+                        except Exception:
+                            return "Failed to parse path as JSON list: {}".format(path)
                     else:
-                        return "Path does not exist or is not accessible: {}".format(abs_path)
+                        # Normalise to absolute path
+                        abs_path = path if os.path.isabs(path) \
+                            else os.path.join(self.current_directory, path)
+
+                        if os.path.isdir(abs_path):
+                            archive_base_dir = os.path.dirname(abs_path)
+                            for root, dirs, files in os.walk(abs_path):
+                                for fname in files:
+                                    file_list.append(os.path.join(root, fname))
+                        elif os.path.isfile(abs_path):
+                            archive_base_dir = os.path.dirname(abs_path)
+                            file_list = [abs_path]
+                        else:
+                            return "Path does not exist or is not accessible: {}".format(abs_path)
+                else:
+                    return "Invalid path argument type: {}".format(type(path))
 
                 if not file_list:
                     return "No files found to download."

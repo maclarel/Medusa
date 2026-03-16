@@ -18,14 +18,14 @@ The command automatically detects whether each supplied path is a file or a dire
 
 - Python Versions Supported: 2.7, 3.8
 - Needs Admin: False
-- Version: 1
+- Version: 2
 - Author: @maclarel
 
 ### Arguments
 
 #### path
 
-- Description: An array of file or directory paths to download. Multiple entries can be added through the Mythic UI.
+- Description: An array of file or directory paths to download. Multiple entries can be added through the Mythic UI or provided as a JSON array.
 - Required Value: True
 - Default Value: None
 
@@ -37,30 +37,28 @@ The command automatically detects whether each supplied path is a file or a dire
 
 ## Usage
 
-Use the Mythic popup UI to add one or more paths to the **path** array and select the desired **mode**.
-
 Download an entire directory as a zip archive (default mode):
 
 ```
-download_bulk -path /remote/directory
+download_bulk {"path": ["/remote/directory"], "mode": "archive"}
 ```
 
 Download a single file using archive mode:
 
 ```
-download_bulk -path /remote/path/to/file.txt
+download_bulk {"path": ["/remote/path/to/file.txt"]}
 ```
 
-Download multiple specific files iteratively (add each path through the UI):
+Download multiple specific files iteratively:
 
 ```
-download_bulk -path /remote/file1.txt -path /remote/file2.txt -mode iterative
+download_bulk {"path": ["/remote/file1.txt", "/remote/file2.txt"], "mode": "iterative"}
 ```
 
 Download a directory, sending each file individually:
 
 ```
-download_bulk -path /remote/directory -mode iterative
+download_bulk {"path": ["/remote/directory"], "mode": "iterative"}
 ```
 
 ## MITRE ATT&CK Mapping

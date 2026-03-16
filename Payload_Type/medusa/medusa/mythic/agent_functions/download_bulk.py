@@ -54,13 +54,13 @@ class DownloadBulkArguments(TaskArguments):
 class DownloadBulkCommand(CommandBase):
     cmd = "download_bulk"
     needs_admin = False
-    help_cmd = 'download_bulk -path /remote/path -path /remote/other_path'
+    help_cmd = 'download_bulk {"path": ["/remote/path", "/remote/path2"], "mode": "archive"}'
     description = (
         "Bulk download file(s), director(ies), or a mix from the target machine. "
         "Use 'archive' mode to bundle everything into a single in-memory zip, "
         "or 'iterative' mode to transfer each file individually."
     )
-    version = 1
+    version = 2
     is_download_file = True
     author = "@maclarel"
     parameters = []

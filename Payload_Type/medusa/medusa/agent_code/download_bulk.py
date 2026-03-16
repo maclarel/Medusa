@@ -41,8 +41,8 @@
                                 archive_base_dir = os.sep
                             else:
                                 return "Invalid path value: {}".format(path)
-                        except Exception:
-                            return "Failed to parse path as JSON list: {}".format(path)
+                        except Exception as e:
+                            return "Failed to parse path as JSON list: {} - {}".format(path, e)
                     else:
                         # Normalise to absolute path
                         abs_path = path if os.path.isabs(path) \

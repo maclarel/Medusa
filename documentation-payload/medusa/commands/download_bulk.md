@@ -18,7 +18,7 @@ The command automatically detects whether each supplied path is a file or a dire
 
 - Python Versions Supported: 2.7, 3.8
 - Needs Admin: False
-- Version: 2
+- Version: 1
 - Author: @maclarel
 
 ### Arguments

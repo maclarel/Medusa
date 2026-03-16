@@ -58,11 +58,11 @@ class DownloadBulkCommand(CommandBase):
     )
     version = 1
     is_download_file = True
-    author = "@ajpc500"
+    author = "@maclarel"
     parameters = []
     attackmapping = ["T1020", "T1030", "T1041"]
     argument_class = DownloadBulkArguments
-    browser_script = BrowserScript(script_name="download_bulk", author="@its_a_feature_", for_new_ui=True)
+    browser_script = BrowserScript(script_name="download_bulk", author="@maclarel", for_new_ui=True)
     attributes = CommandAttributes(
         supported_python_versions=["Python 2.7", "Python 3.8"],
         supported_os=[SupportedOS.MacOS, SupportedOS.Windows, SupportedOS.Linux],

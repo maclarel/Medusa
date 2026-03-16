@@ -17,13 +17,16 @@
                 file_list = []
                 archive_base_dir = None
 
-                # Check if path is a JSON list of files
+                # Check if path is a list of files/directories
                 if isinstance(path, list):
-                    # Normalise each path in the list to absolute
-                    file_list = [
-                        f if os.path.isabs(f) else os.path.join(self.current_directory, f)
-                        for f in path
-                    ]
+                    for p in path:
+                        abs_p = p if os.path.isabs(p) else os.path.join(self.current_directory, p)
+                        if os.path.isdir(abs_p):
+                            for root, dirs, files in os.walk(abs_p):
+                                for fname in files:
+                                    file_list.append(os.path.join(root, fname))
+                        else:
+                            file_list.append(abs_p)
                     # Anchor arcnames at the filesystem root so each entry's full path is
                     # preserved inside the archive (e.g. "etc/nginx/nginx.conf").
                     archive_base_dir = os.sep
@@ -34,10 +37,14 @@
                         try:
                             parsed = json.loads(stripped)
                             if isinstance(parsed, list):
-                                file_list = [
-                                    f if os.path.isabs(f) else os.path.join(self.current_directory, f)
-                                    for f in parsed
-                                ]
+                                for f in parsed:
+                                    abs_f = f if os.path.isabs(f) else os.path.join(self.current_directory, f)
+                                    if os.path.isdir(abs_f):
+                                        for root, dirs, files in os.walk(abs_f):
+                                            for fname in files:
+                                                file_list.append(os.path.join(root, fname))
+                                    else:
+                                        file_list.append(abs_f)
                                 archive_base_dir = os.sep
                             else:
                                 return "Invalid path value: {}".format(path)

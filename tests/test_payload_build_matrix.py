@@ -194,6 +194,81 @@ async def fake_other_service_rpc(_msg):
     )
 
 
+class TestToPythonLiteral(unittest.TestCase):
+    """Unit tests for Medusa._to_python_literal (issue #38 regression)."""
+
+    @classmethod
+    def setUpClass(cls):
+        module = load_builder_module()
+        cls.medusa = module.Medusa()
+
+    def _convert(self, value):
+        return self.medusa._to_python_literal(value)
+
+    def test_string_passthrough(self):
+        self.assertEqual(self._convert("hello"), "hello")
+
+    def test_string_containing_null_passthrough(self):
+        self.assertEqual(self._convert("nullcorp"), "nullcorp")
+
+    def test_string_containing_false_passthrough(self):
+        self.assertEqual(self._convert("falsehood"), "falsehood")
+
+    def test_string_containing_true_passthrough(self):
+        self.assertEqual(self._convert("trueblue"), "trueblue")
+
+    def test_dict_with_none_value(self):
+        result = self._convert({"key": None})
+        self.assertIn("None", result)
+        self.assertNotIn("null", result)
+
+    def test_dict_with_bool_values(self):
+        result = self._convert({"a": True, "b": False})
+        self.assertIn("True", result)
+        self.assertIn("False", result)
+        self.assertNotIn("true", result)
+        self.assertNotIn("false", result)
+
+    def test_dict_header_with_null_substring(self):
+        """Regression: 'nullcorp' in a dict value must not become 'Nonecorp'."""
+        result = self._convert({"User-agent": "nullcorp"})
+        self.assertIn("nullcorp", result)
+        self.assertNotIn("Nonecorp", result)
+
+    def test_dict_header_with_false_substring(self):
+        """Regression: 'falsehood' in a dict value must not become 'Falsehood'."""
+        result = self._convert({"X-Custom": "falsehood"})
+        self.assertIn("falsehood", result)
+        self.assertNotIn("Falsehood", result)
+
+    def test_dict_header_with_true_substring(self):
+        """Regression: 'trueblue' in a dict value must not become 'Trueblue'."""
+        result = self._convert({"X-Custom": "trueblue"})
+        self.assertIn("trueblue", result)
+        self.assertNotIn("Trueblue", result)
+
+    def test_dict_mixed_keywords_and_substrings(self):
+        """Dict with both real null/bool values and string substrings."""
+        value = {"flag": True, "data": None, "agent": "nullifier", "status": "falsestart"}
+        result = self._convert(value)
+        self.assertIn("True", result)
+        self.assertIn("None", result)
+        self.assertIn("nullifier", result)
+        self.assertNotIn("Noneifier", result)
+        self.assertIn("falsestart", result)
+        self.assertNotIn("Falsestart", result)
+
+    def test_header_replacement_in_template(self):
+        """Issue #38: HEADER_PLACEHOLDER replacement must not mangle 'null' inside header values."""
+        base_code = '"Headers": HEADER_PLACEHOLDER,'
+        headers = {"User-agent": "nullcorp"}
+
+        c2 = FakeC2("http", {"headers": headers})
+        result = self.medusa._apply_c2_parameter_replacements(base_code, c2)
+        self.assertIn("nullcorp", result)
+        self.assertNotIn("Nonecorp", result)
+
+
 class TestPayloadBuildMatrix(unittest.TestCase):
     def test_profiles_auto_discovered(self):
         self.assertTrue(PROFILES, "No transport profiles were discovered from transport_*.py2/.py3 templates")

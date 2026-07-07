@@ -193,7 +193,11 @@ class Medusa(PayloadType):
     def _to_python_literal(self, value):
         if isinstance(value, str):
             return value
-        return json.dumps(value).replace("false", "False").replace("true", "True").replace("null", "None")
+        s = json.dumps(value)
+        s = re.sub(r'\bfalse\b', 'False', s)
+        s = re.sub(r'\btrue\b', 'True', s)
+        s = re.sub(r'\bnull\b', 'None', s)
+        return s
 
     def _apply_c2_parameter_replacements(self, base_code: str, c2):
         params = c2.get_parameters_dict()
